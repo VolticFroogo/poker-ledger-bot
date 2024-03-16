@@ -1,5 +1,9 @@
 {
 	"clientId": "123456789012345678",
 	"guildId": "876543210987654321",
-	"token": "your-token-goes-here"
+	"token": "your-token-goes-here",
+	"sheetId": "sheet-id-goes-here",
+	"tableId": "table-id-goes-here",
+	"googleEmail": "abc@abc.iam.gserviceaccount.com",
+	"googlePrivateKey": "private-key-goes-here"
 }
