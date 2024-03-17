@@ -5,5 +5,9 @@
 	"sheetId": "sheet-id-goes-here",
 	"tableId": "table-id-goes-here",
 	"googleEmail": "abc@abc.iam.gserviceaccount.com",
-	"googlePrivateKey": "private-key-goes-here"
+	"googlePrivateKey": "private-key-goes-here",
+	"whitelistedDiscordUserIds": [
+		"123456789012345678",
+		"876543210987654321"
+	]
 }

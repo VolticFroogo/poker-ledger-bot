@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
-const { sheetId, tableId, googleEmail, googlePrivateKey } = require('../../config.json');
+const { sheetId, tableId, googleEmail, googlePrivateKey, whitelistedDiscordUserIds } = require('../../config.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,6 +13,11 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
+        // If the user is not whitelisted, return an error
+        if (!whitelistedDiscordUserIds.includes(interaction.user.id)) {
+            return interaction.reply('You are not authorized to use this command');
+        }
+
         const url = interaction.options.getString('url');
 
         // Example game URL: https://www.pokernow.club/games/pglijOn8fur6gGjOgFBhJ-ZOa
