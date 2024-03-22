@@ -22,7 +22,7 @@ module.exports = {
 
         // Example game URL: https://www.pokernow.club/games/pglijOn8fur6gGjOgFBhJ-ZOa
         // Extract game ID from URL using regex
-        const gameId = url.match(/https:\/\/www\.pokernow\.club\/games\/([a-zA-Z0-9-]+)/)[1];
+        const gameId = url.match(/https:\/\/www\.pokernow\.club\/games\/([a-zA-Z0-9-_]+)/)[1];
 
         // If the game ID is not found, return an error
         if (!gameId) {
@@ -34,6 +34,12 @@ module.exports = {
         // Fetch ledger CSV from Poker Now
         const ledgerUrl = `https://www.pokernow.club/games/${gameId}/ledger_${gameId}.csv`;
         const ledgerResponse = await fetch(ledgerUrl);
+
+        // If the ledger is not found, return an error
+        if (!ledgerResponse.ok) {
+            return interaction.editReply(`Unable to fetch ledger for game \`${gameId}\``);
+        }
+
         const ledgerText = await ledgerResponse.text();
 
         // Parse CSV
