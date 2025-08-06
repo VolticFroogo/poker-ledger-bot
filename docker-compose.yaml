@@ -5,3 +5,5 @@ services:
     build: .
     restart: unless-stopped
     container_name: poker-ledger-bot
+    volumes:
+      - ./config.json:/usr/src/app/config.json
