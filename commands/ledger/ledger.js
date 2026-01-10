@@ -34,7 +34,7 @@ module.exports = {
         await interaction.reply(`Fetching ledger for game \`${gameId}\`...`);
 
         // Fetch ledger CSV from Poker Now
-        const ledgerUrl = `https://www.pokernow.club/games/${gameId}/ledger_${gameId}.csv`;
+        const ledgerUrl = `https://www.pokernow.com/games/${gameId}/ledger_${gameId}.csv`;
         const ledgerResponse = await fetch(ledgerUrl);
 
         // If the ledger is not found, return an error
