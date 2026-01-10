@@ -22,12 +22,14 @@ module.exports = {
 
         // Example game URL: https://www.pokernow.club/games/pglijOn8fur6gGjOgFBhJ-ZOa
         // Extract game ID from URL using regex
-        const gameId = url.match(/https:\/\/www\.pokernow\.club\/games\/([a-zA-Z0-9-_]+)/)[1];
+        const gameIdMatch = url.match(/https:\/\/www\.pokernow\.(club|com)\/games\/([a-zA-Z0-9-_]+)/);
 
         // If the game ID is not found, return an error
-        if (!gameId) {
+        if (!gameIdMatch || gameIdMatch.length < 3) {
             return interaction.reply('Invalid game URL');
         }
+
+        const gameId = gameIdMatch[2];
 
         await interaction.reply(`Fetching ledger for game \`${gameId}\`...`);
 
