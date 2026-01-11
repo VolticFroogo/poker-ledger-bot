@@ -35,7 +35,11 @@ module.exports = {
 
         // Fetch ledger CSV from Poker Now
         const ledgerUrl = `https://www.pokernow.com/games/${gameId}/ledger_${gameId}.csv`;
-        const ledgerResponse = await fetch(ledgerUrl);
+        const ledgerResponse = await fetch(ledgerUrl, {
+            headers: {
+                "Cookie": "migrate_attempted=1"
+            }
+        });
 
         // If the ledger is not found, return an error
         if (!ledgerResponse.ok) {
