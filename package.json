@@ -11,8 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^14.12.1",
-    "google-auth-library": "^9.7.0",
-    "google-spreadsheet": "^4.1.1"
+    "discord.js": "^14.26.4",
+    "google-auth-library": "^10.6.2",
+    "google-spreadsheet": "^5.2.0"
   }
 }
