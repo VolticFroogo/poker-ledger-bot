@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
-const { sheetId, tableId, googleEmail, googlePrivateKey, whitelistedDiscordUserIds } = require('../../config.json');
+const { sheetId, tableId, googleEmail, googlePrivateKey, whitelistedDiscordUserIds, whitelistedHeaders } = require('../../config.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -49,7 +49,18 @@ module.exports = {
         const ledgerText = await ledgerResponse.text();
 
         // Parse CSV
-        const ledger = ledgerText.split('\n').map(row => row.split(','));
+        const [header, ...dataRows] = ledgerText.trim().split('\n').map(row => row.split(','));
+
+        // Only keep whitelisted columns, preserving the column order from the CSV
+        const columnIndexes = header
+            .map((name, index) => [name, index])
+            .filter(([name]) => whitelistedHeaders.includes(name))
+            .map(([, index]) => index);
+
+        const ledger = dataRows.map(row => columnIndexes.map(index => row[index]));
+
+        // Re-add the filtered header row so it's uploaded along with the data
+        ledger.unshift(columnIndexes.map(index => header[index]));
 
         await interaction.editReply(`Fetched ledger for game \`${gameId}\`! Updating Google Sheet...`);
 
