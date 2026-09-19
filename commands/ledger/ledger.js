@@ -1,7 +1,7 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
-const { sheetId, tableId, googleEmail, googlePrivateKey, whitelistedDiscordUserIds, whitelistedHeaders } = require('../../config.json');
+const { sheetId, tableId, formattedTableId, googleEmail, googlePrivateKey, whitelistedDiscordUserIds, whitelistedHeaders } = require('../../config.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -83,6 +83,108 @@ module.exports = {
         // Append rows to the sheet
         await sheet.addRows(ledger);
 
-        await interaction.editReply(`Updated Google Sheet with ledger for game \`${gameId}\`!`);
+        await interaction.editReply(`Updated Google Sheet with ledger for game \`${gameId}\`! Fetching summary...`);
+
+        // Fetch some updated cells from the sheet which contains summary information about the session
+        // The player names come from C4-H4
+        // The player accumulated win/loss comes from C3-H3
+        // Whether the player played (TRUE/FALSE) comes from C2-H2
+        // The player session win/loss comes from C1-H1
+        // The session number comes from A1
+        // The session duration comes from B1
+        // If J1 is non-empty, it contains an error message describing a problem with the table
+        const formattedTable = await doc.sheetsById[formattedTableId];
+        await formattedTable.loadCells('A1:J4');
+
+        const tableError = formattedTable.getCellByA1('J1').formattedValue;
+        const sessionNumber = formattedTable.getCellByA1('A1').formattedValue;
+
+        if (tableError) {
+            return interaction.editReply({ content: '', embeds: [buildErrorEmbed(sessionNumber, gameId, tableError)] });
+        }
+
+        const sessionDuration = formattedTable.getCellByA1('B1').formattedValue;
+
+        const columns = ['C', 'D', 'E', 'F', 'G', 'H'];
+        const players = columns
+            .map(column => ({
+                name: formattedTable.getCellByA1(`${column}4`).formattedValue,
+                sessionWinLoss: formattedTable.getCellByA1(`${column}1`).formattedValue,
+                played: formattedTable.getCellByA1(`${column}2`).formattedValue,
+                accumulatedWinLoss: formattedTable.getCellByA1(`${column}3`).formattedValue,
+            }))
+            .filter(player => player.name && player.played === 'TRUE');
+
+        const summaryEmbed = buildSummaryEmbed(sessionNumber, sessionDuration, players, gameId);
+
+        await interaction.editReply({ content: '', embeds: [summaryEmbed] });
     },
 };
+
+// ANSI codes supported by Discord's ```ansi code blocks
+const ANSI_RESET = '\u001b[0m';
+const ANSI_BOLD = '\u001b[1m';
+const ANSI_GREEN = '\u001b[32m';
+const ANSI_RED = '\u001b[31m';
+const ANSI_GRAY = '\u001b[30m';
+
+// Parses a formatted currency string (e.g. "$120.00" or "($50.00)") into a signed number
+// Values use European formatting: "." as thousands separator and "," as decimal separator
+function parseCurrency(value) {
+    const trimmed = value.trim();
+    const isAccountingNegative = trimmed.startsWith('(') && trimmed.endsWith(')');
+    const cleaned = trimmed
+        .replace(/[^0-9.,-]/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
+    const numeric = parseFloat(cleaned) || 0;
+    return isAccountingNegative ? -Math.abs(numeric) : numeric;
+}
+
+// Formats a signed number as a £ amount, always prefixed with + or -
+function formatSignedCurrency(amount) {
+    const sign = amount < 0 ? '-' : '+';
+    return `${sign}£${Math.abs(amount).toFixed(2)}`;
+}
+
+function buildErrorEmbed(sessionNumber, gameId, tableError) {
+    return new EmbedBuilder()
+        .setTitle(`Session ${sessionNumber} Error`)
+        .setDescription('There is an error in the formatted table, so the summary could not be generated.')
+        .addFields({ name: 'Error', value: tableError })
+        .setColor(0xe74c3c)
+        .setFooter({ text: `Game ID: ${gameId}` });
+}
+
+function buildSummaryEmbed(sessionNumber, sessionDuration, players, gameId) {
+    const rows = players.map(player => ({
+        name: player.name,
+        sessionWinLoss: parseCurrency(player.sessionWinLoss),
+        accumulatedWinLoss: parseCurrency(player.accumulatedWinLoss),
+    }));
+
+    const nameWidth = Math.max('Name'.length, ...rows.map(row => row.name.length));
+    const winLossWidth = Math.max('Session'.length, ...rows.map(row => formatSignedCurrency(row.sessionWinLoss).length));
+    const totalWidth = Math.max('Total'.length, ...rows.map(row => formatSignedCurrency(row.accumulatedWinLoss).length));
+
+    const headerRow = `${'Name'.padEnd(nameWidth)}  ${'Session'.padEnd(winLossWidth)}  ${'Total'.padEnd(totalWidth)}`;
+    const dividerRow = '-'.repeat(nameWidth + winLossWidth + totalWidth + 4);
+
+    const playerRows = rows.map(row => {
+        const winLossColor = row.sessionWinLoss > 0 ? ANSI_GREEN : row.sessionWinLoss < 0 ? ANSI_RED : ANSI_GRAY;
+
+        const name = row.name.padEnd(nameWidth);
+        const winLoss = `${ANSI_BOLD}${winLossColor}${formatSignedCurrency(row.sessionWinLoss).padEnd(winLossWidth)}${ANSI_RESET}`;
+        const total = formatSignedCurrency(row.accumulatedWinLoss).padEnd(totalWidth);
+
+        return `${name}  ${winLoss}  ${total}`;
+    });
+
+    const table = ['```ansi', headerRow, dividerRow, ...playerRows, '```'].join('\n');
+
+    return new EmbedBuilder()
+        .setTitle(`Session ${sessionNumber} Summary`)
+        .setDescription(table)
+        .setColor(0x2ecc71)
+        .setFooter({ text: `Duration: ${sessionDuration} | Game ID: ${gameId}` });
+}

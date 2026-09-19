@@ -4,6 +4,7 @@
 	"token": "your-token-goes-here",
 	"sheetId": "sheet-id-goes-here",
 	"tableId": "table-id-goes-here",
+	"formattedTableId": "formatted-table-id-goes-here",
 	"googleEmail": "abc@abc.iam.gserviceaccount.com",
 	"googlePrivateKey": "private-key-goes-here",
 	"whitelistedDiscordUserIds": [
